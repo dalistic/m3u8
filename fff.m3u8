@@ -1,43 +1,31 @@
 #EXTM3U
-#EXTINF:-1 tvg-id="TRT1.tr",TRT 1 (720p)
+#EXTINF:-1 tvg-id="TRT1.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/10660277.png",TRT 1 (720p)
 https://tv-trt1.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRT2.tr",TRT 2 (720p)
+#EXTINF:-1 tvg-id="TRT2.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/7027954.png",TRT 2 (720p)
 https://tv-trt2.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTSPOR.tr",TRT SPOR (720p)
+#EXTINF:-1 tvg-id="TRTSPOR.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/13687983.png",TRT SPOR (720p)
 https://tv-trtspor1.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTSPORYILDIZ.tr",TRT SPOR YILDIZ (720p)
+#EXTINF:-1 tvg-id="TRTSPORYILDIZ.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/11290418.png",TRT SPOR YILDIZ (720p)
 https://tv-trtspor2.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTHABER.tr",TRT HABER (720p)
+#EXTINF:-1 tvg-id="TRTHABER.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/8971102.png",TRT HABER (720p)
 https://tv-trthaber.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTCOCUK.tr",TRT ÇOCUK (720p)
+#EXTINF:-1 tvg-id="TRTCOCUK.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/13060701.png",TRT ÇOCUK (720p)
 https://tv-trtcocuk.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTWORLD.tr",TRT WORLD (720p)
+#EXTINF:-1 tvg-id="TRTWORLD.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/7834584.png",TRT WORLD (720p)
 https://tv-trtworld.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTBELGESEL.tr",TRT BELGESEL (720p)
+#EXTINF:-1 tvg-id="TRTBELGESEL.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/8114410.png",TRT BELGESEL (720p)
 https://tv-trtbelgesel.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTMUZIK.tr",TRT MÜZİK (720p)
+#EXTINF:-1 tvg-id="TRTMUZIK.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/12382043.png",TRT MÜZİK (720p)
 https://tv-trtmuzik.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTTURK.tr",TRT TÜRK (720p)
+#EXTINF:-1 tvg-id="TRTTURK.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/11787778.png",TRT TÜRK (720p)
 https://tv-trtturk.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTKURDI.tr",TRT KURDÎ (720p)
+#EXTINF:-1 tvg-id="TRTKURDI.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/14812637.png",TRT KURDÎ (720p)
 https://tv-trtkurdi.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTARABI.tr",TRT ARABİ (720p)
+#EXTINF:-1 tvg-id="TRTARABI.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/7027905.png",TRT ARABİ (720p)
 https://tv-trtarabi.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTAVAZ.tr",TRT AVAZ (720p)
+#EXTINF:-1 tvg-id="TRTAVAZ.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/7027789.png",TRT AVAZ (720p)
 https://tv-trtavaz.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTDIYANETCOCUK.tr",TRT Diyanet Çocuk (720p)
+#EXTINF:-1 tvg-id="TRTDIYANETCOCUK.tr" tvg-logo="http://assets.tvcdn.net/dba05bf2-9d24-4d20-bc6c-f54a2b60ef7f.png",TRT Diyanet Çocuk (720p)
 https://tv-trtdiyanetcocuk.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TRTEBA.tr",TRT eba (720p)
+#EXTINF:-1 tvg-id="TRTEBA.tr" tvg-logo="https://cdn-i.pr.trt.com.tr/trttv/w750/h750/q100/8886648.png",TRT eba (720p)
 https://tv-e-okul01.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TABIISPOR1.tr",tabii spor 1 (720p)
-https://OMTfm36b1E2HpRagYzd5VwuE0.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TABIISPOR2.tr",tabii spor 2 (720p)
-https://7rXNdPk01F2bvoV7TwJltXJRd.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TABIISPOR3.tr",tabii spor 3 (720p)
-https://AjA9QKfqMvB0zghiXXrci30Rj.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TABIISPOR4.tr",tabii spor 4 (720p)
-https://ditvZPcGdZNWyfx6nCH4hhP69.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TABIISPOR5.tr",tabii spor 5 (720p)
-https://BHf7hmM8Y9RRHoFCa70k2nkF5.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-id="TABIISPOR6.tr",tabii spor 6 (720p)
-https://sSToObkb93QGEjJfkP4ny7nXD.medya.trt.com.tr/master.m3u8
