@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seymen TV</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.0.0/dist/hls.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            overflow: hidden;
+        }
+        #video-player {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        #video-player video {
+            width: 100%;
+            height: 100%;
+        }
+        #channel-menu {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            transition: left 0.3s ease;
+            z-index: 2;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #channel-menu.active {
+            left: 0;
+        }
+        #channel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 20px;
+        }
+        .channel-item {
+            padding: 25px;
+            background-color: #333;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s, border 0.3s;
+            font-size: 18px;
+            border: 3px solid transparent;
+        }
+        .channel-item.selected {
+            border: 3px solid yellow;
+        }
+        .channel-item:hover {
+            background-color: #444;
+            border: 3px solid yellow;
+        }
+        .channel-item img {
+            width: 100px;
+            height: 60px;
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+        .channel-item h3 {
+            margin: 0;
+            font-size: 14px;
+        }
+        #menu-button {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 50%;
+            font-size: 30px;
+            cursor: pointer;
+            z-index: 3;
+            transition: background-color 0.3s;
+        }
+        #menu-button:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+        #prev-channel, #next-channel {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            padding: 15px;
+            cursor: pointer;
+            z-index: 3;
+            font-size: 20px;
+        }
+        #prev-channel {
+            left: 20px;
+        }
+        #next-channel {
+            right: 20px;
+        }
+        #hamburger-menu {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 30px;
+            cursor: pointer;
+            color: white;
+            z-index: 4;
+        }
+        #settings-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            transition: right 0.3s ease;
+            z-index: 2;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #settings-panel.active {
+            right: 0;
+        }
+        #settings-panel button {
+            width: 100%;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        #settings-panel button:hover {
+            background-color: #444;
+        }
+        .toggle-list {
+            cursor: pointer;
+            padding: 10px;
+            background-color: #222;
+            border-radius: 5px;
+            margin: 10px 0;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .toggle-list:hover {
+            background-color: #333;
+        }
+        .saved-channel {
+            padding: 8px;
+            background-color: #444;
+            border-radius: 5px;
+            margin-top: 5px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .saved-channel:hover {
+            background-color: #555;
+        }
+        #add-channel-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+        }
+        #add-channel-modal.active {
+            display: flex;
+        }
+        #add-channel-modal form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 400px;
+        }
+        #add-channel-modal input {
+            padding: 10px;
+            font-size: 16px;
+        }
+        #add-channel-modal button {
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #add-channel-modal button:hover {
+            background-color: #444;
+        }
+
+        /* Bildirim alanı için stil */
+        #notification {
+            position: fixed;
+            top: 20px; /* Üstte olacak şekilde konumlandırdım */
+            left: 50%;
+            transform: translate(-50%, 0);
+            background-color: rgba(255, 255, 255, 0.9); /* Beyaz arka plan */
+            color: black;
+            padding: 20px;
+            border-radius: 8px; 
+            display: none; /* Başlangıçta gizli */
+            z-index: 10;
+            text-align: center;
+            font-size: 24px; /* Metin boyutu */
+        }
+        #notification img {
+            width: 80px; /* Logo boyutu */
+            height: auto; /* Yükseklik ayarı */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="video-player">
+        <video id="player" width="100%" height="100%" autoplay controls></video>
+    </div>
+
+    <div id="current-channel-info" style="position: fixed; top: 10px; left: 10px; color: white;">
+        <img id="current-channel-logo" src="" alt="Logo" style="width: 30px; height: 20px; vertical-align: middle;"/>
+        <span id="current-channel-name"></span>
+    </div>
+
+    <div id="channel-menu">
+        <div id="channel-list">
+            <!-- Kanal Listesi Burada Görüntülenecek -->
+        </div>
+    </div>
+
+    <button id="menu-button">☰</button>
+
+    <button id="prev-channel">◁</button>
+    <button id="next-channel">▷</button>
+
+    <div id="hamburger-menu">⚙</div>
+
+    <div id="settings-panel">
+        <h3>Kayıtlı Kanallar</h3>
+        <div id="added-lists">
+            <div class="toggle-list" id="toggle-added-lists">Eklenen Listeler ▼</div>
+            <div id="saved-channels-list" style="display: none;"></div>
+        </div>
+        <button id="add-channel-button">Kanal Ekle</button>
+        <button id="close-settings">Kapat</button>
+    </div>
+
+    <div id="add-channel-modal">
+        <form id="add-channel-form">
+            <input type="text" id="m3u8-url" placeholder="M3U8 Bağlantısı" required />
+            <input type="text" id="list-name" placeholder="Liste Adı" required />
+            <button type="submit">Kanal Ekle</button>
+            <button type="button" id="close-add-channel-modal">Kapat</button>
+        </form>
+    </div>
+
+    <div id="notification">Kanal: <span id="channel-number"></span><br><span id="channel-name"></span></div> <!-- Kanal bildirim alanı -->
+    
+    <script>
+        const defaultM3UUrls = [
+            {
+                url: 'https://raw.githubusercontent.com/dalistic/m3u8/refs/heads/main/KekikAkademi.m3u',
+                name: 'Varsayılan Liste'
+            }
+        ];
+        let channels = [];
+        let currentChannelIndex = null;
+        let lastPlayedChannelUrl = null;
+        let savedChannels = [];
+        let selectedChannelIndex = 0;
+
+        async function loadDefaultChannels() {
+            for (const { url, name } of defaultM3UUrls) {
+                await loadChannels(url, name);
+            }
+            loadFromLocalStorage();
+        }
+
+        async function loadChannels(url, listName) {
+            const response = await fetch(url);
+            const data = await response.text();
+            const parsedChannels = parseM3U(data);
+            savedChannels.push({ name: listName, url });
+            displaySavedChannels();
+            channels = channels.concat(parsedChannels);
+            displayChannels(channels);
+
+            if (channels.length > 0) {
+                currentChannelIndex = 0; // İlk kanalı ayarlama
+                playVideo(channels[currentChannelIndex].url); // İlk kanalı oynat
+                lastPlayedChannelUrl = channels[currentChannelIndex].url; // Son izlenen URL
+                updateCurrentChannelInfo();
+            }
+        }
+
+        function parseM3U(data) {
+            const lines = data.split('\n');
+            const channels = [];
+            let channel = {};
+
+            lines.forEach(line => {
+                if (line.startsWith('#EXTINF')) {
+                    const parts = line.split(',');
+                    const name = parts[1].trim();
+                    const logo = parts[0].match(/tvg-logo="(.*?)"/) ? parts[0].match(/tvg-logo="(.*?)"/)[1] : '';
+                    channel = { name, logo };
+                } else if (line && !line.startsWith('#')) {
+                    channel.url = line;
+                    channels.push(channel);
+                }
+            });
+            return channels;
+        }
+
+        function displayChannels(channels) {
+            const channelList = document.getElementById('channel-list');
+            channelList.innerHTML = '';
+            channels.forEach((channel, index) => {
+                const channelDiv = document.createElement('div');
+                channelDiv.classList.add('channel-item');
+                channelDiv.innerHTML = `
+                    <img src="${channel.logo || 'https://via.placeholder.com/80x50'}" alt="Logo" />
+                    <h3>${index + 1}. ${channel.name}</h3>
+                `;
+                channelDiv.onclick = () => handleChannelClick(index);
+                channelDiv.classList.toggle('selected', selectedChannelIndex === index);
+                channelList.appendChild(channelDiv);
+            });
+
+            const selectedChannelDiv = channelList.querySelector('.selected');
+            if (selectedChannelDiv) {
+                selectedChannelDiv.scrollIntoView({ block: "nearest", inline: "start" });
+            }
+        }
+
+        function handleChannelClick(index) {
+            if (selectedChannelIndex === index) {
+                closeMenu();
+            } else {
+                selectedChannelIndex = index;
+                currentChannelIndex = index;
+                playVideo(channels[index].url);
+                lastPlayedChannelUrl = channels[index].url;
+                updateCurrentChannelInfo();
+                showNotification(index); // Bildirimi göster
+                saveToLocalStorage();
+            }
+            displayChannels(channels);
+        }
+
+        function playVideo(url) {
+            const video = document.getElementById('player');
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                video.play(); // Videoyu otomatik olarak oynat
+            });
+        }
+
+        function updateCurrentChannelInfo() {
+            const currentChannelLogo = document.getElementById('current-channel-logo');
+            const currentChannelName = document.getElementById('current-channel-name');
+            const currentChannel = channels[currentChannelIndex];
+
+            currentChannelLogo.src = currentChannel.logo || 'https://via.placeholder.com/30x20';
+            currentChannelName.textContent = currentChannel.name;
+
+            document.getElementById('current-channel-info').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('current-channel-info').style.display = 'none';
+            }, 3000);
+        }
+
+        function showNotification(index) {
+            const notification = document.getElementById('notification');
+            const channelName = channels[index].name;
+            const channelLogo = channels[index].logo || 'https://via.placeholder.com/80x50'; // Logo varsayılan
+            notification.innerHTML = `
+                <img src="${channelLogo}" alt="Logo"/><br>
+                ${channelName} (${index + 1})
+            `;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none'; // 6 saniye sonra bildirimi gizle
+            }, 6000);
+        }
+
+        function openMenu() {
+            document.getElementById('channel-menu').classList.add('active');
+            displayChannels(channels);
+        }
+
+        function closeMenu() {
+            document.getElementById('channel-menu').classList.remove('active');
+        }
+
+        function openSettingsPanel() {
+            displaySavedChannels();
+            document.getElementById('settings-panel').classList.add('active');
+        }
+
+        function closeSettingsPanel() {
+            document.getElementById('settings-panel').classList.remove('active');
+        }
+
+        function displaySavedChannels() {
+            const savedChannelsList = document.getElementById('saved-channels-list');
+            savedChannelsList.innerHTML = '';
+            savedChannels.forEach(savedChannel => {
+                const channelDiv = document.createElement('div');
+                channelDiv.classList.add('saved-channel');
+                channelDiv.innerHTML = savedChannel.name;
+                channelDiv.onclick = () => loadAndPlayGroupChannels(savedChannel.url);
+                savedChannelsList.appendChild(channelDiv);
+            });
+        }
+
+        function loadAndPlayGroupChannels(m3u8Url) {
+            fetch(m3u8Url)
+                .then(response => response.text())
+                .then(data => {
+                    channels = parseM3U(data);
+                    selectedChannelIndex = 0;
+                    displayChannels(channels);
+                    currentChannelIndex = 0;
+                    playVideo(channels[currentChannelIndex].url);
+                    lastPlayedChannelUrl = channels[currentChannelIndex].url;
+                    updateCurrentChannelInfo();
+                    saveToLocalStorage();
+                })
+                .catch(error => console.error('M3U8 yüklenirken hata oluştu:', error));
+        }
+
+        function saveToLocalStorage() {
+            const currentChannelUrl = channels[currentChannelIndex].url;
+            const currentChannelName = channels[currentChannelIndex].name;
+            localStorage.setItem('lastPlayedChannel', currentChannelUrl);
+            localStorage.setItem('lastPlayedChannelName', currentChannelName);
+        }
+
+        function loadFromLocalStorage() {
+            const lastPlayedChannel = localStorage.getItem('lastPlayedChannel');
+            if (lastPlayedChannel) {
+                const channelIndex = channels.findIndex(channel => channel.url === lastPlayedChannel);
+                if (channelIndex > -1) {
+                    currentChannelIndex = channelIndex;
+                    playVideo(channels[currentChannelIndex].url);
+                    updateCurrentChannelInfo();
+                }
+            }
+        }
+
+        document.getElementById('hamburger-menu').addEventListener('click', () => {
+            if (document.getElementById('settings-panel').classList.contains('active')) {
+                closeSettingsPanel();
+            } else {
+                openSettingsPanel();
+            }
+        });
+
+        document.getElementById('close-settings').addEventListener('click', closeSettingsPanel);
+        document.getElementById('add-channel-button').addEventListener('click', () => {
+            document.getElementById('add-channel-modal').classList.add('active');
+        });
+
+        document.getElementById('add-channel-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const url = document.getElementById('m3u8-url').value;
+            const name = document.getElementById('list-name').value;
+            addNewGroup(url, name);
+            document.getElementById('add-channel-modal').classList.remove('active');
+        });
+
+        document.getElementById('close-add-channel-modal').addEventListener('click', function() {
+            document.getElementById('add-channel-modal').classList.remove('active');
+        });
+
+        function addNewGroup(m3u8Url, listName) {
+            savedChannels.push({ name: listName, url: m3u8Url });
+            displaySavedChannels();
+            loadAndPlayGroupChannels(m3u8Url);
+        }
+
+        document.getElementById('toggle-added-lists').addEventListener('click', function() {
+            const list = document.getElementById('saved-channels-list');
+            list.style.display = list.style.display === 'none' ? 'block' : 'none';
+        });
+
+        window.onload = function () {
+            loadDefaultChannels();
+            loadFromLocalStorage();
+        };
+
+        document.getElementById('prev-channel').addEventListener('click', changeChannel(-1));
+        document.getElementById('next-channel').addEventListener('click', changeChannel(1));
+
+        document.addEventListener('keydown', function(event) {
+            switch (event.key) {
+                case 'ArrowLeft':
+                    changeChannel(-1)();
+                    break;
+                case 'ArrowRight':
+                    changeChannel(1)();
+                    break;
+                case 'ArrowUp':
+                    if (selectedChannelIndex > 0) {
+                        selectedChannelIndex--;
+                        displayChannels(channels);
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (selectedChannelIndex < channels.length - 1) {
+                        selectedChannelIndex++;
+                        displayChannels(channels);
+                    }
+                    break;
+                case 'Enter':
+                    if (document.getElementById('channel-menu').classList.contains('active')) {
+                        if (currentChannelIndex === selectedChannelIndex) {
+                            closeMenu();
+                        } else {
+                            playVideo(channels[selectedChannelIndex].url);
+                            currentChannelIndex = selectedChannelIndex;
+                            updateCurrentChannelInfo();
+                            saveToLocalStorage();
+                        }
+                    } else {
+                        openMenu();
+                    }
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        document.getElementById('menu-button').addEventListener('click', function() {
+            if (document.getElementById('channel-menu').classList.contains('active')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        });
+
+        function changeChannel(direction) {
+            return function () {
+                if (direction === -1 && currentChannelIndex > 0) {
+                    currentChannelIndex--;
+                } else if (direction === 1 && currentChannelIndex < channels.length - 1) {
+                    currentChannelIndex++;
+                }
+                playVideo(channels[currentChannelIndex].url);
+                updateCurrentChannelInfo();
+                saveToLocalStorage();
+                showNotification(currentChannelIndex); // Bildirimi göster
+            };
+        }
+    </script>
+</body>
+</html>
