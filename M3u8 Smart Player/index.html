@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart TV Player</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest"></script>
+    <style>
+        .channel-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .channel-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-container {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .channel-logo {
+            max-width: 24px;
+            max-height: 24px;
+            object-fit: contain;
+        }
+
+        .logo-placeholder {
+            width: 24px;
+            height: 24px;
+        }
+
+        .channel-name {
+            font-size: 14px;
+        }
+
+        .status {
+            margin-left: 8px;
+        }
+
+        .add-playlist-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .save-active-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .save-active-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="tv-container">
+        <!-- Video Player -->
+        <div class="player-container">
+            <video id="videoPlayer" controls autoplay playsinline></video>
+            <div id="embedContainer" class="embed-container" style="display: none;">
+                <div class="embed-wrapper"></div>
+            </div>
+            
+            <!-- Kanal Bilgisi Overlay -->
+            <div class="channel-info-overlay">
+                <img id="currentChannelLogo" src="" alt="">
+                <span id="currentChannelName"></span>
+                <span id="channelNumber"></span>
+            </div>
+        </div>
+
+        <!-- Kanal Listesi -->
+        <div class="channel-list" id="channelList">
+            <div class="channel-list-header">
+                <div class="header-content">
+                    <h2>Kanal Listesi</h2>
+                    <div class="header-buttons">
+                        <button id="settingsBtn" class="settings-button" title="Ayarlar">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <span class="key-hint">🔼🔽 Gezin | OK Seç | BACK Kapat</span>
+            </div>
+            <div id="channelContainer"></div>
+        </div>
+
+        <!-- Ayarlar Modal -->
+        <div id="settingsModal" class="settings-modal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>Ayarlar</h3>
+                    <button class="close-settings">&times;</button>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-section">
+                        <h4>M3U8 Playlist Ekle</h4>
+                        <form id="m3u8Form">
+                            <input type="text" placeholder="Playlist Adı" id="playlistName" required>
+                            <div class="playlist-input-group">
+                                <input type="url" placeholder="M3U8 URL" id="playlistUrl">
+                                <div class="file-upload">
+                                    <input type="file" id="playlistFile" accept=".m3u8,.m3u,.xml">
+                                    <label for="playlistFile" class="file-button">
+                                        <svg width="24" height="24" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                        </svg>
+                                        Dosya Seç
+                                    </label>
+                                </div>
+                            </div>
+                            <small class="form-help">URL girin veya M3U8/M3U/XML dosyası yükleyin</small>
+                            <div class="button-group">
+                                <button type="submit" class="add-playlist-btn">Ekle</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="settings-section">
+                        <h4>Embed İçerik Ekle</h4>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="isEmbedList">
+                                Embed Listesi Ekle
+                            </label>
+                        </div>
+                        
+                        <form id="embedForm">
+                            <div id="embedFormContent"></div>
+                            <button type="submit">Ekle</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yeni Playlist Ekleme Modal -->
+        <div id="newPlaylistModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>M3U8 Playlist Ekle</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="playlistName">Playlist Adı:</label>
+                        <input type="text" id="playlistName" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="playlistContent">M3U8 İçeriği:</label>
+                        <textarea id="playlistContent" readonly></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button id="addNewPlaylist" class="btn-primary">Ekle</button>
+                        <button class="btn-secondary close-modal">İptal</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bildirim -->
+        <div id="notification" class="notification"></div>
+
+        <div class="saved-channels">
+            <h3>Kayıtlı Listeler</h3>
+            <div id="savedChannelsList"></div>
+            <div id="currentPlaylistUrl" class="current-playlist-url"></div>
+        </div>
+
+        <script src="js/utils.js"></script>
+        <script src="js/channelManager.js"></script>
+        <script src="js/player.js"></script>
+        <script src="js/main.js"></script>
+    </body>
+</html>
