@@ -1,0 +1,2281 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart TV Player</title>
+    <style>
+        :root {
+            --primary-bg: #000000;
+            --overlay-bg: rgba(0, 0, 0, 0.8);
+            --text-color: #ffffff;
+            --accent-color: #00a0ff;
+            --selected-color: #0056b3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .tv-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .player-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .channel-info-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--overlay-bg);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .channel-info-overlay.show {
+            opacity: 1;
+        }
+
+        .channel-info-overlay img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+        }
+
+        .channel-info-overlay span {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #channelNumber {
+            background: var(--accent-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .channel-list {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 400px;
+            height: 100%;
+            background: var(--overlay-bg);
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            backdrop-filter: blur(10px);
+        }
+
+        .channel-list.show {
+            transform: translateX(0);
+        }
+
+        .channel-list-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .key-hint {
+            font-size: 14px;
+            opacity: 0.7;
+            display: block;
+            margin-top: 10px;
+        }
+
+        #channelContainer {
+            overflow-y: auto;
+            height: calc(100% - 80px);
+            scroll-behavior: smooth;
+            
+            /* Scroll bar stilini özelleştir */
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) transparent;
+        }
+
+        /* Webkit tarayıcılar için scroll bar stili */
+        #channelContainer::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #channelContainer::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #channelContainer::-webkit-scrollbar-thumb {
+            background-color: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            gap: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .channel-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .channel-item.selected {
+            background: var(--selected-color);
+        }
+
+        .channel-item.selected:hover {
+            background: var(--selected-color);
+            opacity: 0.9;
+        }
+
+        .channel-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+        }
+
+        .channel-number {
+            background: var(--accent-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-color);
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+            z-index: 2000;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .settings-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        .settings-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .settings-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--overlay-bg);
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .close-settings {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .close-settings:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section h4 {
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        .settings-section form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .settings-section input,
+        .settings-section textarea {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 4px;
+            color: var(--text-color);
+        }
+
+        .settings-section textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .settings-section button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .settings-section button:hover {
+            background: var(--selected-color);
+        }
+
+        input, textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        .form-group {
+            margin: 10px 0;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* embedContainer için stil ekleyelim */
+        #embedContainer {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #embedContainer iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .embed-type-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .type-button {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .type-button.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .type-button:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .embed-form {
+            display: none;
+        }
+
+        .embed-form.active {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-help {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            margin-top: -5px;
+        }
+
+        #embedFormContent {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-help {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            margin-top: -5px;
+        }
+
+        .embed-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        .embed-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .embed-wrapper iframe,
+        .embed-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .saved-playlists {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .playlist-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .playlist-button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .playlist-button:hover {
+            background: var(--selected-color);
+        }
+
+        .channel-emoji {
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .playlist-input-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-option-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .input-option-btn.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .playlist-form {
+            display: none;
+        }
+
+        .playlist-form.active {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 4px;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .playlist-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .playlist-input-group input[type="url"] {
+            flex: 1;
+        }
+
+        .file-upload {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+        }
+
+        .file-upload label.file-button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 15px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .file-upload label.file-button:hover {
+            background: var(--selected-color);
+        }
+
+        .file-button {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 15px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .file-button:hover {
+            background: var(--selected-color);
+        }
+
+        .file-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .test-channels-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .test-channels-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .test-channels-button:hover {
+            background: var(--selected-color);
+        }
+
+        .test-channels-button svg {
+            animation: spin 2s linear infinite;
+            animation-play-state: paused;
+        }
+
+        .test-channels-button.testing svg {
+            animation-play-state: running;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .test-progress {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--accent-color);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            display: block;
+            margin-top: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .test-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .test-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--overlay-bg);
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .close-test {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .test-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .test-channels-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .test-channel-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            gap: 10px;
+        }
+
+        .test-channel-item.testing {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .test-channel-item.active {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+        }
+
+        .test-channel-item.inactive {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+        }
+
+        .test-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: gray;
+        }
+
+        .test-status.testing {
+            background: yellow;
+            animation: pulse 1s infinite;
+        }
+
+        .test-status.active {
+            background: #00ff00;
+        }
+
+        .test-status.inactive {
+            background: #ff0000;
+        }
+
+        .test-actions {
+            padding: 20px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .add-working-channels {
+            padding: 10px 20px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .test-channels-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        .test-channels-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="tv-container">
+        <!-- Video Player -->
+        <div class="player-container">
+            <video id="videoPlayer" controls autoplay playsinline></video>
+            <div id="embedContainer" class="embed-container" style="display: none;">
+                <div class="embed-wrapper"></div>
+            </div>
+            
+            <!-- Kanal Bilgisi Overlay -->
+            <div class="channel-info-overlay">
+                <img id="currentChannelLogo" src="" alt="">
+                <span id="currentChannelName"></span>
+                <span id="channelNumber"></span>
+            </div>
+        </div>
+
+        <!-- Kanal Listesi -->
+        <div class="channel-list" id="channelList">
+            <div class="channel-list-header">
+                <div class="header-content">
+                    <h2>Kanal Listesi</h2>
+                    <div class="header-buttons">
+                        <button id="settingsBtn" class="settings-button" title="Ayarlar">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <span class="key-hint">🔼🔽 Gezin | OK Seç | BACK Kapat</span>
+            </div>
+            <div id="channelContainer"></div>
+        </div>
+
+        <!-- Ayarlar Modal -->
+        <div id="settingsModal" class="settings-modal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>Ayarlar</h3>
+                    <button class="close-settings">&times;</button>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-section">
+                        <h4>M3U8 Playlist Ekle</h4>
+                        <form id="m3u8Form">
+                            <input type="text" placeholder="Playlist Adı" id="playlistName" required>
+                            <div class="playlist-input-group">
+                                <input type="url" placeholder="M3U8 URL" id="playlistUrl">
+                                <div class="file-upload">
+                                    <input type="file" id="playlistFile" accept=".m3u8,.m3u,.xml">
+                                    <label for="playlistFile" class="file-button">
+                                        <svg width="24" height="24" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                        </svg>
+                                        Dosya Seç
+                                    </label>
+                                </div>
+                            </div>
+                            <small class="form-help">URL girin veya M3U8/M3U/XML dosyası yükleyin</small>
+                            <div class="button-group">
+                                <button type="submit" class="add-playlist-btn">Ekle</button>
+                                <button type="button" class="test-playlist-btn" id="testPlaylistBtn">
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <path fill="currentColor" d="M14,12L10,16L14,20V16.9C18.56,16.44 22,14.42 22,12C22,9.58 18.56,7.56 14,7.1V9.09C17.45,9.43 20,10.6 20,12C20,13.4 17.45,14.57 14,14.91V12M4,12C4,10.6 6.55,9.43 10,9.09V7.1C5.44,7.56 2,9.58 2,12C2,14.42 5.44,16.44 10,16.9V14.91C6.55,14.57 4,13.4 4,12Z"/>
+                                    </svg>
+                                    Test Et
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="settings-section">
+                        <h4>Embed İçerik Ekle</h4>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="isEmbedList">
+                                Embed Listesi Ekle
+                            </label>
+                        </div>
+                        
+                        <form id="embedForm">
+                            <!-- Dinamik form içeriği buraya gelecek -->
+                            <div id="embedFormContent"></div>
+                            <button type="submit">Ekle</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Modal -->
+        <div id="testModal" class="test-modal">
+            <div class="test-content">
+                <div class="test-header">
+                    <h3>Kanal Testi</h3>
+                    <button class="close-test">&times;</button>
+                </div>
+                <div class="test-body">
+                    <div class="test-url-input">
+                        <input type="url" id="channelListUrl" placeholder="M3U Liste URL'sini girin" class="channel-url-input">
+                        <button id="fetchChannelsBtn" class="fetch-channels-btn">Kanalları Çek</button>
+                    </div>
+                    <div class="test-info-header">
+                        <div class="test-progress">
+                            <div class="progress-text">Test başlatılmadı</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                        </div>
+                        <button id="startTestBtn" class="start-test">
+                            Testi Başlat
+                        </button>
+                        <button id="stopTestBtn" class="stop-test" style="display: none;">
+                            Testi Durdur
+                        </button>
+                    </div>
+                    <div class="test-channels-list">
+                        <!-- Test sonuçları buraya dinamik olarak eklenecek -->
+                    </div>
+                    <div class="test-actions">
+                        <button id="addWorkingChannels" class="add-working-channels" disabled>
+                            Aktif Kanalları Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bildirim -->
+    <div id="notification" class="notification"></div>
+
+    <div class="saved-channels">
+        <h3>Kayıtlı Listeler</h3>
+        <div id="savedChannelsList"></div>
+        <div id="currentPlaylistUrl" class="current-playlist-url"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest"></script>
+    <script>
+        class ChannelManager {
+            constructor(player) {
+                this.player = player;
+                this.channels = [];
+                this.playlists = [];
+                this.selectedIndex = 0;
+                this.currentPlayingIndex = 0;
+                this.isListVisible = false;
+                this.loadDefaultPlaylist();
+            }
+
+            async loadDefaultPlaylist() {
+                const defaultUrl = 'https://raw.githubusercontent.com/keyiflerolsun/IPTV_YenirMi/main/Kanallar/KekikAkademi.m3u';
+                await this.addPlaylist('Varsayılan Liste', defaultUrl);
+            }
+
+            async addPlaylist(name, url, fileContent = null) {
+                try {
+                    let data;
+                    if (fileContent) {
+                        // Dosyadan yükleme
+                        data = fileContent;
+                    } else {
+                        // URL'den yükleme
+                        const response = await fetch(url);
+                        data = await response.text();
+                    }
+
+                    const newChannels = this.parseM3U8(data);
+                    
+                    this.playlists.push({
+                        name: name,
+                        url: url || 'local-file',
+                        channels: newChannels
+                    });
+
+                    this.channels = newChannels;
+                    
+                    this.channels.forEach((channel, index) => {
+                        channel.number = index + 1;
+                    });
+
+                    this.renderChannels();
+                    
+                    if (newChannels.length > 0) {
+                        this.playChannel(0);
+                        Utils.showNotification(`${name} listesi eklendi (${newChannels.length} kanal)`);
+                    }
+
+                    this.updatePlaylistsInSettings();
+                } catch (error) {
+                    console.error('Playlist yüklenirken hata:', error);
+                    Utils.showNotification('Liste yüklenirken hata oluştu!', 5000);
+                }
+            }
+
+            updatePlaylistsInSettings() {
+                const settingsSection = document.querySelector('.settings-section');
+                let playlistsDiv = document.getElementById('savedPlaylists');
+                
+                if (!playlistsDiv) {
+                    playlistsDiv = document.createElement('div');
+                    playlistsDiv.id = 'savedPlaylists';
+                    playlistsDiv.className = 'saved-playlists';
+                    settingsSection.insertBefore(playlistsDiv, settingsSection.firstChild);
+                }
+
+                playlistsDiv.innerHTML = `
+                    <h4>Kayıtlı Listeler</h4>
+                    <div class="playlist-buttons">
+                        ${this.playlists.map((playlist, index) => `
+                            <button class="playlist-button" data-index="${index}">
+                                ${playlist.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+
+                const buttons = playlistsDiv.querySelectorAll('.playlist-button');
+                buttons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const index = button.dataset.index;
+                        this.switchPlaylist(index);
+                    });
+                });
+            }
+
+            switchPlaylist(index) {
+                const playlist = this.playlists[index];
+                if (playlist) {
+                    this.channels = playlist.channels;
+                    
+                    this.channels.forEach((channel, idx) => {
+                        channel.number = idx + 1;
+                    });
+
+                    this.renderChannels();
+                    if (this.channels.length > 0) {
+                        this.playChannel(0);
+                    }
+                    Utils.showNotification(`${playlist.name} listesi yüklendi (${this.channels.length} kanal)`);
+                }
+            }
+
+            parseM3U8(content) {
+                const lines = content.split('\n');
+                const channels = [];
+                let currentChannel = null;
+
+                lines.forEach((line, index) => {
+                    // Yorum satırlarını ve boş satırları atla
+                    if (line.startsWith('#') && !line.startsWith('#EXTINF:')) {
+                        return;
+                    }
+
+                    if (line.startsWith('#EXTINF:')) {
+                        // Logo için tvg-logo parametresini ara
+                        const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                        // İsim için son virgülden sonrasını al
+                        const nameMatch = line.match(/,([^,]+)$/);
+                        
+                        if (nameMatch) {
+                            currentChannel = {
+                                number: channels.length + 1,
+                                logo: logoMatch && logoMatch[1] ? logoMatch[1] : '📺',
+                                name: nameMatch[1].trim(),
+                                type: 'm3u8'
+                            };
+                        }
+                    } else if (line.trim()) {  // Boş olmayan herhangi bir satır
+                        const url = line.trim();
+                        if (url.startsWith('http') && currentChannel) {
+                            // URL'yi temizle ve protokolü ekle
+                            currentChannel.url = url.startsWith('//') ? 'https:' + url : url;
+                            
+                            // YouTube linkleri için embed tipini ayarla
+                            if (currentChannel.url.includes('youtube.com')) {
+                                currentChannel.type = 'embed';
+                            }
+                            
+                            channels.push(currentChannel);
+                            currentChannel = null;
+                        }
+                    }
+                });
+
+                console.log('Parsed channels:', channels); // Debug için
+                return channels;
+            }
+
+            renderChannels() {
+                const container = document.getElementById('channelContainer');
+                container.innerHTML = '';
+
+                this.channels.forEach((channel, index) => {
+                    const channelElement = document.createElement('div');
+                    channelElement.className = `channel-item ${index === this.selectedIndex ? 'selected' : ''}`;
+                    
+                    if (channel.logo === '📺') {
+                        channelElement.innerHTML = `
+                            <span class="channel-number">${channel.number}</span>
+                            <span class="channel-emoji">${channel.logo}</span>
+                            <span>${channel.name}</span>
+                        `;
+                    } else {
+                        channelElement.innerHTML = `
+                            <span class="channel-number">${channel.number}</span>
+                            <img src="${channel.logo}" onerror="this.onerror=null;this.src='assets/default-channel-logo.png'">
+                            <span>${channel.name}</span>
+                        `;
+                    }
+                    
+                    channelElement.addEventListener('click', () => {
+                        this.playChannel(index);
+                    });
+                    
+                    container.appendChild(channelElement);
+                });
+            }
+
+            toggleChannelList() {
+                this.isListVisible = !this.isListVisible;
+                const channelList = document.getElementById('channelList');
+                
+                if (this.isListVisible) {
+                    channelList.classList.add('show');
+                    this.updateSelection();
+                } else {
+                    channelList.classList.remove('show');
+                }
+            }
+
+            selectNextChannel() {
+                if (this.selectedIndex < this.channels.length - 1) {
+                    this.selectedIndex++;
+                    this.updateSelection();
+                }
+            }
+
+            selectPreviousChannel() {
+                if (this.selectedIndex > 0) {
+                    this.selectedIndex--;
+                    this.updateSelection();
+                }
+            }
+
+            updateSelection() {
+                const items = document.querySelectorAll('.channel-item');
+                items.forEach((item, index) => {
+                    item.classList.toggle('selected', index === this.selectedIndex);
+                });
+
+                const selectedItem = items[this.selectedIndex];
+                const container = document.getElementById('channelContainer');
+                
+                if (selectedItem) {
+                    const containerHeight = container.clientHeight;
+                    const itemHeight = selectedItem.clientHeight;
+                    
+                    const scrollPosition = selectedItem.offsetTop - (containerHeight / 2) + (itemHeight / 2);
+                    
+                    container.scrollTo({
+                        top: scrollPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+
+            playChannel(index) {
+                if (index >= 0 && index < this.channels.length) {
+                    this.selectedIndex = index;
+                    this.currentPlayingIndex = index;
+                    const channel = this.channels[index];
+                    
+                    console.log('Playing channel:', channel); // Debug için
+
+                    const videoPlayer = document.getElementById('videoPlayer');
+                    const embedContainer = document.getElementById('embedContainer');
+                    const embedWrapper = embedContainer.querySelector('.embed-wrapper');
+                    
+                    if (!channel.url) {
+                        console.error('Channel URL is missing:', channel);
+                        Utils.showNotification('Kanal URL\'si bulunamadı!');
+                        return;
+                    }
+
+                    if (channel.type === 'embed') {
+                        videoPlayer.style.display = 'none';
+                        embedContainer.style.display = 'block';
+                        
+                        let embedUrl = channel.url;
+                        if (embedUrl.includes('?')) {
+                            embedUrl += '&autoplay=1';
+                        } else {
+                            embedUrl += '?autoplay=1';
+                        }
+
+                        embedWrapper.innerHTML = `
+                            <iframe 
+                                src="${embedUrl}"
+                                style="width: 100%; height: 100%; border: none;"
+                                allowfullscreen
+                                allow="autoplay; fullscreen"
+                                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                            ></iframe>
+                        `;
+                    } else {
+                        videoPlayer.style.display = 'block';
+                        embedContainer.style.display = 'none';
+                        embedWrapper.innerHTML = '';
+                        this.player.loadChannel(channel);
+                    }
+                    
+                    this.updateSelection();
+                    this.showChannelInfo(channel);
+                }
+            }
+
+            showChannelInfo(channel) {
+                const overlay = document.querySelector('.channel-info-overlay');
+                const logo = document.getElementById('currentChannelLogo');
+                const name = document.getElementById('currentChannelName');
+                const number = document.getElementById('channelNumber');
+
+                if (channel.logo === '📺') {
+                    logo.style.display = 'none';
+                    name.innerHTML = `${channel.logo} ${channel.name}`;
+                } else {
+                    logo.style.display = 'block';
+                    logo.src = channel.logo;
+                    name.textContent = channel.name;
+                }
+                
+                number.textContent = channel.number;
+
+                overlay.classList.add('show');
+                setTimeout(() => overlay.classList.remove('show'), 3000);
+            }
+
+            addEmbedChannel(name, embedCode) {
+                const hlsMatch = embedCode.match(/src="([^"]+\.m3u8)"/);
+                if (hlsMatch) {
+                    const hlsUrl = hlsMatch[1];
+                    const channel = {
+                        number: this.channels.length + 1,
+                        name: name,
+                        type: 'm3u8',
+                        url: hlsUrl,
+                        logo: 'assets/tv-logo.png'
+                    };
+
+                    this.channels.push(channel);
+                    this.renderChannels();
+                    this.playChannel(this.channels.length - 1);
+                    return;
+                }
+
+                const srcMatch = embedCode.match(/src="([^"]+)"/);
+                if (!srcMatch) {
+                    console.error('Geçerli bir iframe URL\'si bulunamadı');
+                    return;
+                }
+
+                const iframeUrl = srcMatch[1];
+                const isYouTube = iframeUrl.includes('youtube.com/embed/');
+                
+                const channel = {
+                    number: this.channels.length + 1,
+                    name: name,
+                    type: 'embed',
+                    url: iframeUrl,
+                    logo: isYouTube ? 'assets/youtube-logo.png' : 'assets/embed-logo.png'
+                };
+
+                this.channels.push(channel);
+                this.renderChannels();
+                this.playChannel(this.channels.length - 1);
+            }
+
+            addEmbedList(listName, embedList) {
+                embedList.forEach((embed, index) => {
+                    const channel = {
+                        number: this.channels.length + 1,
+                        name: embed.name || `${listName} ${index + 1}`,
+                        type: 'embed',
+                        url: embed.code,
+                        logo: embed.logo || (embed.code.includes('youtube.com/embed/') ? 
+                            'assets/youtube-logo.png' : 'assets/embed-logo.png')
+                    };
+                    this.channels.push(channel);
+                });
+
+                this.renderChannels();
+                
+                if (embedList.length > 0) {
+                    this.playChannel(this.channels.length - embedList.length);
+                }
+            }
+
+            async testChannels() {
+                const testModal = document.getElementById('testModal');
+                const testList = testModal.querySelector('.test-channels-list');
+                const addButton = document.getElementById('addWorkingChannels');
+                
+                // Modal'ı göster ve listeyi temizle
+                testModal.style.display = 'block';
+                testList.innerHTML = '';
+                
+                // Kanal listesini oluştur
+                this.channels.forEach((channel, index) => {
+                    const channelElement = document.createElement('div');
+                    channelElement.className = 'test-channel-item';
+                    channelElement.innerHTML = `
+                        <div class="test-status"></div>
+                        <span>${channel.name}</span>
+                    `;
+                    testList.appendChild(channelElement);
+                });
+
+                const workingChannels = [];
+                
+                // Her kanalı test et
+                for (let i = 0; i < this.channels.length; i++) {
+                    const channel = this.channels[i];
+                    const channelElement = testList.children[i];
+                    const statusDot = channelElement.querySelector('.test-status');
+                    
+                    // Test başladı
+                    channelElement.classList.add('testing');
+                    statusDot.classList.add('testing');
+                    
+                    try {
+                        const isWorking = await this.testChannel(channel);
+                        
+                        // Test sonucunu göster
+                        channelElement.classList.remove('testing');
+                        statusDot.classList.remove('testing');
+                        
+                        if (isWorking) {
+                            channelElement.classList.add('active');
+                            statusDot.classList.add('active');
+                            workingChannels.push(channel);
+                        } else {
+                            channelElement.classList.add('inactive');
+                            statusDot.classList.add('inactive');
+                        }
+                    } catch (error) {
+                        channelElement.classList.remove('testing');
+                        channelElement.classList.add('inactive');
+                        statusDot.classList.remove('testing');
+                        statusDot.classList.add('inactive');
+                    }
+                }
+                
+                // Aktif kanalları ekleme butonu
+                addButton.onclick = () => {
+                    this.channels = [...workingChannels];
+                    this.renderChannels();
+                    testModal.style.display = 'none';
+                    Utils.showNotification(`${workingChannels.length} aktif kanal listeye eklendi`);
+                };
+            }
+
+            async testChannel(channel) {
+                return new Promise((resolve) => {
+                    const timeout = setTimeout(() => {
+                        resolve(false);
+                    }, 3000);
+
+                    const testRequest = fetch(channel.url)
+                        .then(response => {
+                            clearTimeout(timeout);
+                            resolve(response.ok);
+                        })
+                        .catch(() => {
+                            clearTimeout(timeout);
+                            resolve(false);
+                        });
+                });
+            }
+
+            getAllChannels() {
+                // Önce localStorage'dan kanalları al
+                const localChannels = JSON.parse(localStorage.getItem('channels') || '[]');
+                
+                // Eğer localStorage boşsa varsayılan listeyi kullan
+                if (localChannels.length === 0) {
+                    return this.defaultChannels;
+                }
+                
+                return localChannels;
+            }
+
+            updatePlaylistsList() {
+                const playlistsContainer = document.getElementById('savedChannelsList');
+                if (!playlistsContainer) return;
+
+                playlistsContainer.innerHTML = this.playlists.map(playlist => `
+                    <div class="playlist-item">
+                        <div class="playlist-info">
+                            <span class="playlist-name">${playlist.name}</span>
+                            <span class="playlist-count">${playlist.channels.length} kanal</span>
+                        </div>
+                        <div class="playlist-actions">
+                            <button onclick="channelManager.loadPlaylist(${JSON.stringify(playlist)})">Yükle</button>
+                            <button onclick="channelManager.deletePlaylist('${playlist.name}')">Sil</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadPlaylist(playlist) {
+                this.currentPlaylist = playlist;
+                this.channels = playlist.channels;
+                this.updateChannelList();
+                
+                // URL göstergesini güncelle
+                const urlDisplay = document.getElementById('currentPlaylistUrl');
+                if (urlDisplay) {
+                    urlDisplay.textContent = playlist.url || '';
+                }
+            }
+
+            deletePlaylist(playlistName) {
+                this.playlists = this.playlists.filter(p => p.name !== playlistName);
+                localStorage.setItem('playlists', JSON.stringify(this.playlists));
+                this.updatePlaylistsList();
+            }
+        }
+
+        class ChannelTester {
+            constructor() {
+                this.modal = document.getElementById('testModal');
+                this.startButton = document.getElementById('startTestBtn');
+                this.stopButton = document.getElementById('stopTestBtn');
+                this.progressBar = document.querySelector('.progress-fill');
+                this.progressText = document.querySelector('.progress-text');
+                this.channelsList = document.querySelector('.test-channels-list');
+                this.closeButton = document.querySelector('.close-test');
+                this.saveButton = document.getElementById('addWorkingChannels');
+                
+                this.workingChannels = [];
+                this.allChannels = [];
+                this.isTestRunning = false;
+                
+                this.initializeEvents();
+            }
+
+            showModal() {
+                this.modal.style.display = 'block';
+                this.progressBar.style.width = '0%';
+                this.progressText.textContent = 'URL girin ve Kanalları Çek\'e tıklayın';
+                this.channelsList.innerHTML = '';
+                this.startButton.disabled = true;
+                this.saveButton.disabled = true;
+                
+                // URL input ve fetch butonunu ayarla
+                const urlInput = document.getElementById('channelListUrl');
+                const fetchBtn = document.getElementById('fetchChannelsBtn');
+                urlInput.value = '';
+                
+                // Fetch butonu click event'i
+                fetchBtn.onclick = () => {
+                    const url = urlInput.value.trim();
+                    if (url) {
+                        this.currentTestUrl = url;
+                        this.fetchChannels(url);
+                    }
+                };
+            }
+
+            async fetchChannels(url) {
+                try {
+                    this.progressText.textContent = 'Kanallar yükleniyor...';
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Liste yüklenemedi');
+                    
+                    const content = await response.text();
+                    this.allChannels = this.parseM3U8(content);
+                    
+                    if (this.allChannels.length === 0) {
+                        this.progressText.textContent = 'Kanal listesi boş!';
+                        return;
+                    }
+                    
+                    // Kanalları listele
+                    this.channelsList.innerHTML = '';
+                    this.allChannels.forEach(channel => {
+                        const channelElement = document.createElement('div');
+                        channelElement.className = 'test-channel-item';
+                        channelElement.dataset.name = channel.name;
+                        channelElement.dataset.url = channel.url;
+                        channelElement.dataset.logo = channel.logo || '';
+                        
+                        channelElement.innerHTML = `
+                            <div class="channel-info">
+                                ${channel.logo ? 
+                                    `<img src="${channel.logo}" class="channel-logo" alt="" onerror="this.style.display='none'">` : 
+                                    '<div class="logo-placeholder"></div>'
+                                }
+                                <span class="channel-name">${channel.name}</span>
+                            </div>
+                            <span class="status">⏸️</span>
+                        `;
+                        this.channelsList.appendChild(channelElement);
+                    });
+
+                    this.progressText.textContent = `${this.allChannels.length} kanal listelendi`;
+                    this.startButton.disabled = false;
+                } catch (error) {
+                    this.progressText.textContent = 'Hata: ' + error.message;
+                }
+            }
+
+            parseM3U8(content) {
+                const lines = content.split('\n');
+                const channels = [];
+                let currentChannel = null;
+
+                lines.forEach(line => {
+                    line = line.trim();
+                    if (line.startsWith('#EXTINF:')) {
+                        const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+                        const nameMatch = line.match(/,(.+)$/);
+                        currentChannel = {
+                            name: nameMatch ? nameMatch[1].trim() : 'İsimsiz Kanal',
+                            logo: logoMatch ? logoMatch[1] : ''
+                        };
+                    } else if (line && !line.startsWith('#') && currentChannel) {
+                        currentChannel.url = line;
+                        channels.push(currentChannel);
+                        currentChannel = null;
+                    }
+                });
+                return channels;
+            }
+
+            async testChannel(channel) {
+                return new Promise((resolve) => {
+                    const video = document.createElement('video');
+                    let hls = null;
+
+                    const cleanup = () => {
+                        if (hls) hls.destroy();
+                        video.remove();
+                    };
+
+                    const timeoutId = setTimeout(() => {
+                        cleanup();
+                        resolve(false);
+                    }, 10000);
+
+                    try {
+                        if (channel.url.includes('.m3u8')) {
+                            hls = new Hls();
+                            hls.loadSource(channel.url);
+                            hls.attachMedia(video);
+
+                            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                                clearTimeout(timeoutId);
+                                cleanup();
+                                resolve(true);
+                            });
+
+                            hls.on(Hls.Events.ERROR, () => {
+                                clearTimeout(timeoutId);
+                                cleanup();
+                                resolve(false);
+                            });
+                        } else {
+                            video.src = channel.url;
+                            video.onloadeddata = () => {
+                                clearTimeout(timeoutId);
+                                cleanup();
+                                resolve(true);
+                            };
+                            video.onerror = () => {
+                                clearTimeout(timeoutId);
+                                cleanup();
+                                resolve(false);
+                            };
+                        }
+                    } catch (error) {
+                        clearTimeout(timeoutId);
+                        cleanup();
+                        resolve(false);
+                    }
+                });
+            }
+
+            async startTesting() {
+                this.isTestRunning = true;
+                this.startButton.style.display = 'none';
+                this.stopButton.style.display = 'block';
+                this.saveButton.disabled = true;
+                this.workingChannels = [];
+
+                const items = this.channelsList.getElementsByClassName('test-channel-item');
+                let testedCount = 0;
+
+                for (let i = 0; i < this.allChannels.length && this.isTestRunning; i++) {
+                    const channel = this.allChannels[i];
+                    const item = items[i];
+                    const statusElement = item.querySelector('.status');
+                    
+                    statusElement.textContent = '⏳';
+                    const isWorking = await this.testChannel(channel);
+                    testedCount++;
+                    
+                    if (isWorking) {
+                        statusElement.textContent = '✅';
+                        item.classList.add('working');
+                        this.workingChannels.push(channel);
+                    } else {
+                        statusElement.textContent = '❌';
+                    }
+
+                    const progress = (testedCount / this.allChannels.length) * 100;
+                    this.progressBar.style.width = `${progress}%`;
+                    this.progressText.textContent = `Test ediliyor... (${testedCount}/${this.allChannels.length})`;
+                }
+
+                this.isTestRunning = false;
+                this.startButton.style.display = 'block';
+                this.stopButton.style.display = 'none';
+                this.saveButton.disabled = false;
+                
+                this.progressText.textContent = `Test tamamlandı! ${this.workingChannels.length}/${this.allChannels.length} kanal çalışıyor`;
+            }
+
+            saveWorkingChannels() {
+                if (this.workingChannels.length === 0) {
+                    const notification = document.getElementById('notification');
+                    notification.textContent = 'Kaydedilecek aktif kanal bulunamadı';
+                    notification.style.display = 'block';
+                    setTimeout(() => notification.style.display = 'none', 3000);
+                    return;
+                }
+
+                // M3U8 içeriğini oluştur
+                let m3u8Content = '#EXTM3U\n';
+                this.workingChannels.forEach(channel => {
+                    m3u8Content += `#EXTINF:-1 tvg-logo="${channel.logo}",${channel.name}\n${channel.url}\n`;
+                });
+
+                // Yeni playlist adını oluştur
+                const playlistName = `Aktif Kanallar - ${this.workingChannels.length}`;
+
+                // Yeni playlist'i oluştur
+                const newPlaylist = {
+                    name: playlistName,
+                    type: 'm3u',
+                    channels: this.workingChannels,
+                    content: m3u8Content,
+                    url: this.currentTestUrl,
+                    timestamp: new Date().getTime()
+                };
+
+                try {
+                    // Mevcut playlistleri al
+                    const playlists = JSON.parse(localStorage.getItem('playlists') || '[]');
+                    
+                    // Yeni playlist'i ekle
+                    playlists.push(newPlaylist);
+                    
+                    // LocalStorage'a kaydet
+                    localStorage.setItem('playlists', JSON.stringify(playlists));
+
+                    // channelManager'ı güncelle
+                    if (window.channelManager) {
+                        window.channelManager.playlists = playlists;
+                        window.channelManager.loadPlaylist(newPlaylist); // Yeni listeyi yükle
+                        window.channelManager.updatePlaylistsList(); // Playlist listesini güncelle
+                    }
+
+                    // Başarılı bildirimini göster
+                    const notification = document.getElementById('notification');
+                    notification.textContent = `${playlistName} başarıyla eklendi`;
+                    notification.style.display = 'block';
+                    setTimeout(() => notification.style.display = 'none', 3000);
+
+                    // Test modalını kapat
+                    this.modal.style.display = 'none';
+                } catch (error) {
+                    console.error('Liste kaydedilirken hata:', error);
+                    const notification = document.getElementById('notification');
+                    notification.textContent = 'Liste kaydedilirken hata oluştu';
+                    notification.style.display = 'block';
+                    setTimeout(() => notification.style.display = 'none', 3000);
+                }
+            }
+
+            initializeEvents() {
+                this.closeButton.onclick = () => this.modal.style.display = 'none';
+                this.startButton.onclick = () => this.startTesting();
+                this.stopButton.onclick = () => {
+                    this.isTestRunning = false;
+                    this.progressText.textContent = 'Test durduruluyor...';
+                };
+                this.saveButton.onclick = () => this.saveWorkingChannels();
+
+                // Test playlist butonu için event
+                document.getElementById('testPlaylistBtn').onclick = () => {
+                    const playlistUrl = document.getElementById('playlistUrl').value.trim();
+                    if (playlistUrl) {
+                        this.showModal();
+                        document.getElementById('channelListUrl').value = playlistUrl;
+                        document.getElementById('fetchChannelsBtn').click();
+                    }
+                };
+            }
+        }
+
+        const channelTester = new ChannelTester();
+
+        function saveActiveChannels() {
+            const activeChannels = document.querySelectorAll('.channel-item.active');
+            if (activeChannels.length === 0) {
+                alert('Kaydedilecek aktif kanal bulunamadı!');
+                return;
+            }
+
+            // Aktif kanallardan M3U8 listesi oluştur
+            let m3u8Content = '#EXTM3U\n';
+            activeChannels.forEach(channel => {
+                const channelName = channel.querySelector('.channel-name').textContent;
+                const channelUrl = channel.getAttribute('data-url');
+                m3u8Content += `#EXTINF:-1,${channelName}\n${channelUrl}\n`;
+            });
+
+            // Yeni playlist adını oluştur
+            const playlistName = `Aktif Kanallar - ${activeChannels.length}`;
+            
+            // Playlist ekleme arayüzünü göster
+            showAddPlaylistDialog(playlistName, m3u8Content);
+        }
+
+        function showAddPlaylistDialog(playlistName, m3u8Content) {
+            const dialog = document.createElement('div');
+            dialog.className = 'add-playlist-dialog';
+            dialog.innerHTML = `
+                <h3>M3U8 Playlist Ekle</h3>
+                <div class="form-group">
+                    <label>Playlist Adı:</label>
+                    <input type="text" id="playlist-name" value="${playlistName}" />
+                </div>
+                <div class="form-group">
+                    <label>M3U8 URL veya İçerik:</label>
+                    <textarea id="playlist-content" readonly>${m3u8Content}</textarea>
+                </div>
+                <div class="button-group">
+                    <button onclick="addNewPlaylist()">Ekle</button>
+                    <button onclick="closeAddPlaylistDialog()">İptal</button>
+                </div>
+            `;
+            
+            document.body.appendChild(dialog);
+        }
+
+        function addNewPlaylist() {
+            const name = document.getElementById('playlist-name').value;
+            const content = document.getElementById('playlist-content').value;
+            
+            // Yeni playlist'i kayıtlı listelere ekle
+            const playlist = {
+                name: name,
+                content: content,
+                timestamp: Date.now()
+            };
+            
+            // LocalStorage'a kaydet
+            const playlists = JSON.parse(localStorage.getItem('playlists') || '[]');
+            playlists.push(playlist);
+            localStorage.setItem('playlists', JSON.stringify(playlists));
+            
+            // Playlist listesini güncelle
+            updatePlaylistsList();
+            
+            // Dialog'u kapat
+            closeAddPlaylistDialog();
+        }
+
+        function closeAddPlaylistDialog() {
+            const dialog = document.querySelector('.add-playlist-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        }
+
+        function updatePlaylistsList() {
+            const playlistsContainer = document.querySelector('.playlists-container');
+            const playlists = JSON.parse(localStorage.getItem('playlists') || '[]');
+            
+            playlistsContainer.innerHTML = playlists.map(playlist => `
+                <div class="playlist-item">
+                    <span>${playlist.name}</span>
+                    <button onclick="loadPlaylist('${playlist.name}')">Yükle</button>
+                </div>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const player = new VideoPlayer();
+            const channelManager = new ChannelManager(player);
+
+            // Sağ tık menüsünü ve diğer varsayılan olayları engelle
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('mousedown', e => {
+                // Sadece input ve textarea elementlerinde sağ tık izni ver
+                if (!e.target.matches('input, textarea')) {
+                    if (e.button === 2) e.preventDefault();
+                }
+            });
+
+            // TV kontrolleri
+            Utils.setupTVControls(channelManager);
+
+            // Ayarlar modal kontrolü
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettings = document.querySelector('.close-settings');
+
+            settingsBtn.addEventListener('click', () => {
+                settingsModal.style.display = 'block';
+            });
+
+            closeSettings.addEventListener('click', () => {
+                settingsModal.style.display = 'none';
+            });
+
+            // M3U8 Playlist ekleme
+            const m3u8Form = document.getElementById('m3u8Form');
+            const playlistFile = document.getElementById('playlistFile');
+            const playlistUrl = document.getElementById('playlistUrl');
+            const playlistName = document.getElementById('playlistName');
+
+            // Dosya seçildiğinde otomatik işlem yap
+            playlistFile.addEventListener('change', async () => {
+                if (playlistFile.files.length > 0) {
+                    const file = playlistFile.files[0];
+                    
+                    // URL alanını devre dışı bırak
+                    playlistUrl.value = '';
+                    playlistUrl.disabled = true;
+
+                    try {
+                        // Dosya adını al (uzantısız)
+                        const fileName = file.name.replace(/\.[^/.]+$/, "");
+                        
+                        // Dosya içeriğini oku
+                        const content = await file.text();
+                        
+                        // Playlist'i ekle
+                        await channelManager.addPlaylist(fileName, null, content);
+                        
+                        // Formu temizle ve modal'ı kapat
+                        m3u8Form.reset();
+                        settingsModal.style.display = 'none';
+                        
+                        // Bildirim göster
+                        Utils.showNotification(`${fileName} listesi eklendi`);
+                        
+                        // URL alanını tekrar aktif et
+                        playlistUrl.disabled = false;
+                    } catch (error) {
+                        console.error('Dosya okuma hatası:', error);
+                        Utils.showNotification('Dosya okunamadı!', 5000);
+                        playlistFile.value = '';
+                        playlistUrl.disabled = false;
+                    }
+                }
+            });
+
+            // URL girildiğinde dosya seçimini temizle
+            playlistUrl.addEventListener('input', () => {
+                if (playlistUrl.value) {
+                    playlistFile.value = '';
+                    playlistFile.disabled = true;
+                } else {
+                    playlistFile.disabled = false;
+                }
+            });
+
+            m3u8Form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('playlistName').value;
+
+                try {
+                    if (playlistFile.files.length > 0) {
+                        // Dosyadan yükleme
+                        const file = playlistFile.files[0];
+                        const content = await file.text();
+                        await channelManager.addPlaylist(name, null, content);
+                    } else if (playlistUrl.value) {
+                        // URL'den yükleme
+                        await channelManager.addPlaylist(name, playlistUrl.value);
+                    } else {
+                        throw new Error('URL veya dosya seçilmedi');
+                    }
+
+                    settingsModal.style.display = 'none';
+                    Utils.showNotification(`${name} playlist eklendi`);
+                    m3u8Form.reset();
+                    playlistUrl.disabled = false;
+                    playlistFile.disabled = false;
+                } catch (error) {
+                    console.error('Playlist yükleme hatası:', error);
+                    Utils.showNotification('Liste yüklenirken hata oluştu!', 5000);
+                }
+            });
+
+            // Embed form tipleri arası geçiş
+            const typeButtons = document.querySelectorAll('.type-button');
+            const embedForms = document.querySelectorAll('.embed-form');
+
+            typeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Butonları güncelle
+                    typeButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    // Formları güncelle
+                    const formId = button.dataset.form;
+                    embedForms.forEach(form => {
+                        form.classList.remove('active');
+                        if (form.id === formId + 'Form') {
+                            form.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // Embed form içeriğini yönet
+            const isEmbedList = document.getElementById('isEmbedList');
+            const embedFormContent = document.getElementById('embedFormContent');
+            const embedForm = document.getElementById('embedForm');
+
+            // Form içeriklerini hazırla
+            const singleEmbedContent = `
+                <input type="text" placeholder="Kanal Adı" id="embedName" required>
+                <textarea placeholder="Embed Kodu (örn: <iframe...>)" id="embedCode" required></textarea>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="addToExisting" checked>
+                        Mevcut listeye ekle
+                    </label>
+                </div>
+            `;
+
+            const listEmbedContent = `
+                <input type="text" placeholder="Liste Adı" id="embedListName" required>
+                <input type="url" placeholder="Embed Liste URL" id="embedListUrl" required>
+                <small class="form-help">JSON formatında embed listesi bağlantısı</small>
+            `;
+
+            // Başlangıçta tekli embed formunu göster
+            embedFormContent.innerHTML = singleEmbedContent;
+
+            // Checkbox değişiminde form içeriğini güncelle
+            isEmbedList.addEventListener('change', () => {
+                embedFormContent.innerHTML = isEmbedList.checked ? listEmbedContent : singleEmbedContent;
+            });
+
+            // Form gönderimi
+            embedForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                if (isEmbedList.checked) {
+                    // Liste ekleme
+                    const name = document.getElementById('embedListName').value;
+                    const url = document.getElementById('embedListUrl').value;
+
+                    try {
+                        const response = await fetch(url);
+                        const embedList = await response.json();
+                        channelManager.addEmbedList(name, embedList);
+                        settingsModal.style.display = 'none';
+                        Utils.showNotification(`${name} listesi eklendi`);
+                        embedForm.reset();
+                    } catch (error) {
+                        Utils.showNotification('Liste yüklenirken hata oluştu!', 5000);
+                        console.error('Embed liste yükleme hatası:', error);
+                    }
+                } else {
+                    // Tekli embed ekleme
+                    const name = document.getElementById('embedName').value;
+                    const embedCode = document.getElementById('embedCode').value;
+                    const addToExisting = document.getElementById('addToExisting').checked;
+
+                    if (addToExisting) {
+                        channelManager.addEmbedChannel(name, embedCode);
+                    } else {
+                        channelManager.channels = [{
+                            number: 1,
+                            name: name,
+                            type: 'embed',
+                            url: embedCode,
+                            logo: embedCode.includes('youtube.com/embed/') ? 
+                                'assets/youtube-logo.png' : 'assets/embed-logo.png'
+                        }];
+                        channelManager.renderChannels();
+                        channelManager.playChannel(0);
+                    }
+
+                    settingsModal.style.display = 'none';
+                    Utils.showNotification(`${name} kanalı eklendi`);
+                    embedForm.reset();
+                    // Checkbox'ı varsayılana döndür
+                    if (!addToExisting) {
+                        document.getElementById('addToExisting').checked = true;
+                    }
+                }
+            });
+
+            // Modal dışına tıklandığında kapatma
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            });
+
+            // Playlist input seçenekleri arası geçiş
+            const inputOptionBtns = document.querySelectorAll('.input-option-btn');
+            const playlistForms = document.querySelectorAll('.playlist-form');
+
+            inputOptionBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Butonları güncelle
+                    inputOptionBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    // Formları güncelle
+                    const inputType = btn.dataset.input;
+                    playlistForms.forEach(form => {
+                        form.classList.remove('active');
+                        if (form.id === `${inputType}Form`) {
+                            form.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // Dosya yükleme formu
+            const fileForm = document.getElementById('fileForm');
+            fileForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('filePlaylistName').value;
+                const file = document.getElementById('playlistFile').files[0];
+
+                if (file) {
+                    try {
+                        const content = await file.text();
+                        channelManager.addPlaylist(name, null, content);
+                        settingsModal.style.display = 'none';
+                        fileForm.reset();
+                    } catch (error) {
+                        console.error('Dosya okuma hatası:', error);
+                        Utils.showNotification('Dosya okunamadı!', 5000);
+                    }
+                }
+            });
+
+            // Test butonu kontrolü
+            const testChannelsBtn = document.getElementById('testChannelsBtn');
+            const testModal = document.getElementById('testModal');
+            const closeTestBtn = document.querySelector('.close-test');
+
+            testChannelsBtn.addEventListener('click', () => {
+                testModal.style.display = 'block';
+                channelManager.testChannels(); // Test işlemini başlat
+            });
+
+            closeTestBtn.addEventListener('click', () => {
+                testModal.style.display = 'none';
+            });
+
+            // Modal dışına tıklandığında kapatma
+            testModal.addEventListener('click', (e) => {
+                if (e.target === testModal) {
+                    testModal.style.display = 'none';
+                }
+            });
+        });
+
+        class VideoPlayer {
+            constructor() {
+                this.video = document.getElementById('videoPlayer');
+                this.hls = null;
+                this.mpegts = null;
+                this.retryCount = 0;
+                this.maxRetries = 3;
+            }
+
+            loadChannel(channel) {
+                // Mevcut playerları temizle
+                this.destroyPlayers();
+                this.retryCount = 0;
+
+                // URL'yi kontrol et
+                if (channel.url.includes('.m3u8')) {
+                    this.loadHLSStream(channel.url);
+                } else if (channel.url.includes(':8080/') || channel.url.includes('.ts')) {
+                    this.loadMPEGTSStream(channel.url);
+                } else {
+                    this.loadDirectStream(channel.url);
+                }
+            }
+
+            destroyPlayers() {
+                if (this.hls) {
+                    this.hls.destroy();
+                    this.hls = null;
+                }
+                if (this.mpegts) {
+                    this.mpegts.destroy();
+                    this.mpegts = null;
+                }
+                this.video.src = '';
+            }
+
+            loadMPEGTSStream(url) {
+                if (mpegts.isSupported()) {
+                    this.mpegts = mpegts.createPlayer({
+                        type: 'mpegts',
+                        url: url,
+                        isLive: true,
+                        enableStashBuffer: false,
+                        stashInitialSize: 128,
+                        liveBufferLatencyChasing: true,
+                        autoCleanupSourceBuffer: true
+                    });
+
+                    this.mpegts.attachMediaElement(this.video);
+                    this.mpegts.load();
+                    this.mpegts.play();
+
+                    this.mpegts.on(mpegts.Events.ERROR, (error) => {
+                        console.error('MPEGTS error:', error);
+                        this.handleStreamError();
+                    });
+
+                    this.video.play().catch(error => {
+                        console.error('Video play error:', error);
+                        this.handlePlayError();
+                    });
+                } else {
+                    this.loadDirectStream(url);
+                }
+            }
+
+            loadHLSStream(url) {
+                if (Hls.isSupported()) {
+                    this.hls = new Hls({
+                        debug: false,
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 90,
+                        maxBufferLength: 30,
+                        maxMaxBufferLength: 600,
+                        maxBufferSize: 60 * 1000 * 1000,
+                        maxBufferHole: 0.5,
+                        manifestLoadingTimeOut: 10000,
+                        manifestLoadingMaxRetry: 4,
+                        manifestLoadingRetryDelay: 500,
+                        levelLoadingTimeOut: 10000,
+                        levelLoadingMaxRetry: 4,
+                        levelLoadingRetryDelay: 500,
+                        fragLoadingTimeOut: 20000,
+                        fragLoadingMaxRetry: 6,
+                        fragLoadingRetryDelay: 500
+                    });
+
+                    this.hls.loadSource(url);
+                    this.hls.attachMedia(this.video);
+
+                    this.hls.on(Hls.Events.ERROR, (event, data) => {
+                        if (data.fatal) {
+                            this.handleStreamError();
+                        }
+                    });
+
+                    this.video.play().catch(error => this.handlePlayError());
+                } else {
+                    this.loadDirectStream(url);
+                }
+            }
+
+            loadDirectStream(url) {
+                this.video.src = url;
+                this.video.play().catch(error => this.handlePlayError());
+            }
+
+            handleStreamError() {
+                if (this.retryCount < this.maxRetries) {
+                    this.retryCount++;
+                    console.log(`Yeniden bağlanma denemesi: ${this.retryCount}`);
+                    setTimeout(() => {
+                        this.destroyPlayers();
+                        this.loadChannel({ url: this.currentUrl });
+                    }, 2000);
+                } else {
+                    Utils.showNotification('Kanal yüklenemedi! Başka bir kanal deneyin.');
+                }
+            }
+
+            handlePlayError() {
+                if (this.retryCount < this.maxRetries) {
+                    this.retryCount++;
+                    setTimeout(() => {
+                        this.video.play().catch(error => this.handlePlayError());
+                    }, 1000);
+                } else {
+                    Utils.showNotification('Video oynatılamıyor!');
+                }
+            }
+        }
+
+        class Utils {
+            static showNotification(message, duration = 3000) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.style.display = 'block';
+
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, duration);
+            }
+
+            static setupTVControls(channelManager) {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ' || 
+                        e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                        e.preventDefault();
+                    }
+
+                    switch(e.key) {
+                        case 'ArrowUp':
+                            if (channelManager.isListVisible) {
+                                channelManager.selectPreviousChannel();
+                            } else {
+                                const prevIndex = channelManager.selectedIndex - 1;
+                                if (prevIndex >= 0) {
+                                    channelManager.playChannel(prevIndex);
+                                }
+                            }
+                            break;
+                        case 'ArrowDown':
+                            if (channelManager.isListVisible) {
+                                channelManager.selectNextChannel();
+                            } else {
+                                const nextIndex = channelManager.selectedIndex + 1;
+                                if (nextIndex < channelManager.channels.length) {
+                                    channelManager.playChannel(nextIndex);
+                                }
+                            }
+                            break;
+                        case 'Enter':
+                            if (!channelManager.isListVisible) {
+                                channelManager.toggleChannelList();
+                            } else {
+                                if (channelManager.selectedIndex === channelManager.currentPlayingIndex) {
+                                    channelManager.toggleChannelList();
+                                } else {
+                                    channelManager.playChannel(channelManager.selectedIndex);
+                                }
+                            }
+                            break;
+                        case 'Escape':
+                        case 'Backspace':
+                            if (channelManager.isListVisible) {
+                                channelManager.toggleChannelList();
+                            }
+                            break;
+                        case '0':
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            const channelNumber = parseInt(e.key);
+                            if (channelNumber < channelManager.channels.length) {
+                                channelManager.playChannel(channelNumber - 1);
+                                Utils.showNotification(`Kanal ${channelNumber}`);
+                            }
+                            break;
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
