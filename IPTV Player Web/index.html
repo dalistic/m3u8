@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV Oynatıcı</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="iptv-player">
+        <div class="video-container">
+            <video id="videoPlayer" 
+                autoplay 
+                playsinline 
+                disablepictureinpicture 
+                controlslist="nodownload noplaybackrate" 
+                oncontextmenu="return false;"
+            >
+                Tarayıcınız video oynatmayı desteklemiyor.
+            </video>
+            
+            <div id="channelInfo" class="channel-info hidden">
+                <img id="channelLogo" src="" alt="" class="channel-logo">
+                <div class="channel-details">
+                    <div id="channelName" class="channel-name"></div>
+                    <div id="channelNumber" class="channel-number"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="channelList" class="channel-list hidden">
+            <div class="menu-header">
+                <button class="menu-button active">Tüm Kanallar</button>
+                <button class="menu-button">Favoriler</button>
+                <button class="add-playlist">+</button>
+            </div>
+            <div id="channelListContent" class="channel-list-content"></div>
+        </div>
+    </div>
+
+    <!-- Playlist modal'ı ekleyin -->
+    <div id="playlistModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Playlist Yönetimi</h2>
+            <div class="playlist-form">
+                <input type="text" id="playlistUrl" placeholder="M3U URL'si girin">
+                <input type="text" id="playlistName" placeholder="Playlist adı girin">
+                <button id="addPlaylistBtn">Ekle</button>
+            </div>
+            <div class="playlist-list">
+                <h3>Mevcut Playlistler</h3>
+                <div id="existingPlaylists"></div>
+            </div>
+            <button class="close-modal">&times;</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</body>
+</html> 

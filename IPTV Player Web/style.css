@@ -1,0 +1,311 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.iptv-player {
+    display: flex;
+    height: 100vh;
+    background: #000;
+    position: relative;
+}
+
+.video-container {
+    flex: 1;
+    position: relative;
+    background: #000;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+#videoPlayer {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    pointer-events: none;
+    user-select: none;
+}
+
+#videoPlayer::-webkit-media-controls {
+    display: none !important;
+}
+
+#videoPlayer::-webkit-media-controls-enclosure {
+    display: none !important;
+}
+
+#videoPlayer::-webkit-media-controls-panel {
+    display: none !important;
+}
+
+#videoPlayer::-moz-media-controls {
+    display: none !important;
+}
+
+#videoPlayer::-webkit-media-controls-start-playback-button {
+    display: none !important;
+}
+
+.channel-list {
+    width: 300px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    border-left: 1px solid #333;
+}
+
+.channel-list.hidden {
+    display: none;
+}
+
+.menu-header {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    overflow-x: auto;
+}
+
+.menu-button {
+    padding: 8px 15px;
+    background: transparent;
+    border: 1px solid #555;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.menu-button.active {
+    background: #555;
+}
+
+.add-playlist {
+    margin-left: auto;
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border: 1px solid #555;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.channel-list-content {
+    overflow-y: auto;
+    height: calc(100vh - 50px);
+}
+
+.channel-item {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+}
+
+.channel-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.channel-item.selected {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.channel-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.favorite-star {
+    margin-left: auto;
+    font-size: 20px;
+    color: #555;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+/* Dolu yıldız (★) altın rengi olsun */
+.favorite-star[style*="gold"] {
+    color: gold !important;
+}
+
+/* Sadece boyut değişimi için hover ve active */
+.favorite-star:hover {
+    transform: scale(1.2);
+}
+
+.favorite-star:active {
+    transform: scale(0.9);
+}
+
+.channel-info {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: white;
+}
+
+.channel-info.hidden {
+    display: none;
+}
+
+.channel-info .channel-logo {
+    width: 50px;
+    height: 50px;
+}
+
+.channel-details {
+    text-align: left;
+}
+
+.channel-name {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.channel-number {
+    font-size: 14px;
+    color: #aaa;
+}
+
+/* Modal stilleri */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #222;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.modal-content h2 {
+    color: white;
+    margin-bottom: 20px;
+}
+
+.playlist-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.playlist-form input {
+    padding: 8px;
+    border: 1px solid #444;
+    background: #333;
+    color: white;
+    border-radius: 4px;
+}
+
+.playlist-form button {
+    padding: 8px;
+    background: #555;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.playlist-form button:hover {
+    background: #666;
+}
+
+.playlist-list {
+    color: white;
+}
+
+.playlist-list h3 {
+    margin-bottom: 10px;
+}
+
+.playlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #444;
+    cursor: pointer;
+}
+
+.playlist-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.playlist-item button {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.close-modal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Cursor'ı gizle */
+.channel-item:focus {
+    outline: none;
+}
+
+.menu-button:focus {
+    outline: none;
+}
+
+/* Seçili kanal stilini belirginleştir */
+.channel-item.selected {
+    background: rgba(255, 255, 255, 0.2);
+    border-left: 3px solid #fff;
+}
+
+.delete-playlist {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.delete-playlist:hover {
+    background: #ff6666;
+} 
